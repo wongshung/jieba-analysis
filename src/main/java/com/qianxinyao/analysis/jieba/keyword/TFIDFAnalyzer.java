@@ -25,16 +25,11 @@ public class TFIDFAnalyzer
 	static HashMap<String,Double> idfMap;
 	static HashSet<String> stopWordsSet;
 	static double idfMedian;
-	
+
 	/**
-	 * tfidf分析方法
-	 * @param content 需要分析的文本/文档内容
-	 * @param topN 需要返回的tfidf值最高的N个关键词，若超过content本身含有的词语上限数目，则默认返回全部
-	 * @return
+	 * init data first
 	 */
-	public List<Keyword> analyze(String content,int topN){
-		List<Keyword> keywordList=new ArrayList<>();
-		
+	public TFIDFAnalyzer() {
 		if(stopWordsSet==null) {
 			stopWordsSet=new HashSet<>();
 			loadStopWords(stopWordsSet, this.getClass().getResourceAsStream("/stop_words.txt"));
@@ -43,7 +38,17 @@ public class TFIDFAnalyzer
 			idfMap=new HashMap<>();
 			loadIDFMap(idfMap, this.getClass().getResourceAsStream("/idf_dict.txt"));
 		}
-		
+	}
+
+	/**
+	 * tfidf分析方法
+	 * @param content 需要分析的文本/文档内容
+	 * @param topN 需要返回的tfidf值最高的N个关键词，若超过content本身含有的词语上限数目，则默认返回全部
+	 * @return
+	 */
+	public List<Keyword> analyze(String content,int topN){
+		List<Keyword> keywordList=new ArrayList<>();
+
 		Map<String, Double> tfMap=getTF(content);
 		for(String word:tfMap.keySet()) {
 			// 若该词不在idf文档中，则使用平均的idf值(可能定期需要对新出现的网络词语进行纳入)
