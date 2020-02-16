@@ -1,15 +1,13 @@
 package com.qianxinyao.analysis.jieba.keyword;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.huaban.analysis.jieba.JiebaSegmenter;
+import org.wltea.analyzer.core.IKSegmenter;
+import org.wltea.analyzer.core.Lexeme;
+import org.wltea.analyzer.lucene.IKAnalyzer;
 
 /**
  * @author Tom Qian
@@ -44,29 +42,44 @@ public class TFIDFAnalyzer
 	 * tfidf分析方法
 	 * @param content 需要分析的文本/文档内容
 	 * @param topN 需要返回的tfidf值最高的N个关键词，若超过content本身含有的词语上限数目，则默认返回全部
-	 * @return
+	 * @return 分析结果
 	 */
-	public List<Keyword> analyze(String content,int topN){
-		List<Keyword> keywordList=new ArrayList<>();
+	public List<Keyword> analyze(String content, int topN) {
+		Map<String, Double> tfMap = getTF(content, 3);
+		return getKeywordByTfMap(tfMap, topN);
+	}
 
-		Map<String, Double> tfMap=getTF(content);
-		for(String word:tfMap.keySet()) {
+	private List<Keyword> getKeywordByTfMap(Map<String, Double> tfMap, int topN) {
+		List<Keyword> keywordList = new ArrayList<>();
+		for (String word : tfMap.keySet()) {
 			// 若该词不在idf文档中，则使用平均的idf值(可能定期需要对新出现的网络词语进行纳入)
-			if(idfMap.containsKey(word)) {
-				keywordList.add(new Keyword(word,idfMap.get(word)*tfMap.get(word)));
-			}else
-				keywordList.add(new Keyword(word,idfMedian*tfMap.get(word)));
+			if (idfMap.containsKey(word)) {
+				keywordList.add(new Keyword(word, idfMap.get(word) * tfMap.get(word)));
+			} else {
+				keywordList.add(new Keyword(word, idfMedian * tfMap.get(word)));
+			}
 		}
-		
+
 		Collections.sort(keywordList);
-		
-		if(keywordList.size()>topN) {
-			int num=keywordList.size()-topN;
-			for(int i=0;i<num;i++) {
+		if (keywordList.size() > topN) {
+			int num = keywordList.size() - topN;
+			for (int i = 0; i < num; i++) {
 				keywordList.remove(topN);
 			}
 		}
 		return keywordList;
+	}
+
+	/**
+	 * 支持其它分词方式的tfidf分析方法
+	 * @param content 需要分析的文本/文档内容
+	 * @param topN 需要返回的tfidf值最高的N个关键词，若超过content本身含有的词语上限数目，则默认返回全部
+	 * @param segMethod 分词方法，1-ik最小粒度，2-ik智能分词，其它-jieba
+	 * @return 分析结果
+	 */
+	public List<Keyword> analyzeEx(String content, int topN, int segMethod) {
+		Map<String, Double> tfMap=getTF(content, segMethod);
+		return getKeywordByTfMap(tfMap, topN);
 	}
 	
 	/**
@@ -76,15 +89,21 @@ public class TFIDFAnalyzer
 	 * @param content
 	 * @return
 	 */
-	private Map<String, Double> getTF(String content) {
-		Map<String,Double> tfMap=new HashMap<>();
+	private Map<String, Double> getTF(String content, int method) {
+		Map<String,Double> tfMap=new HashMap<>(16);
 		if(content==null || content.equals(""))
-			return tfMap; 
-		
-		JiebaSegmenter segmenter = new JiebaSegmenter();
-		List<String> segments=segmenter.sentenceProcess(content);
+			return tfMap;
+
+		List<String> segments;
+		if (method == 1) {
+			segments = getSegment(content, 1);
+		} else if (method == 2) {
+			segments = getSegment(content, 2);
+		} else {
+			segments = getSegment(content, 3);
+		}
+
 		Map<String,Integer> freqMap=new HashMap<>();
-		
 		int wordSum=0;
 		for(String segment:segments) {
 			//停用词不予考虑，单字词不予考虑
@@ -97,15 +116,59 @@ public class TFIDFAnalyzer
 				}
 			}
 		}
-		
+
 		// 计算double型的tf值
 		for(String word:freqMap.keySet()) {
 			tfMap.put(word,freqMap.get(word)*0.1/wordSum);
 		}
-		
-		return tfMap; 
+
+		return tfMap;
 	}
-	
+
+	/**
+	 * 自定义分词方式，支持其它分词器
+	 * @param content - context
+	 * @param segMethod - 1:IKSegmenter最小粒度，2：IKSegmenter智能，其它：jieba
+	 * @return 分词结果
+	 */
+	private List<String> getSegment(String content, int segMethod) {
+		if (segMethod == 1) {
+			return participleIk(content, false);
+		} else if (segMethod == 2) {
+			return participleIk(content, true);
+		} else {
+			// other wise, using jieba
+			JiebaSegmenter segmenter = new JiebaSegmenter();
+			return segmenter.sentenceProcess(content);
+		}
+	}
+
+	public List<String> participleIk(String text, boolean bSmart) {
+		//对输入进行分词
+		List<String> str = new Vector<>();
+		try {
+			StringReader reader = new StringReader(text);
+			IKSegmenter ik = null;
+			//当为true时，分词器进行最大词长切分
+			if (bSmart) {
+				ik = new IKSegmenter(reader, true);
+			} else {
+				ik = new IKSegmenter(reader, false);
+			}
+			Lexeme lexeme;
+			while ((lexeme = ik.next()) != null) {
+				str.add(lexeme.getLexemeText());
+			}
+			if (str.size() == 0) {
+				return null;
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return str;
+	}
+
 	/**
 	 * 默认jieba分词的停词表
 	 * url:https://github.com/yanyiwu/nodejieba/blob/master/dict/stop_words.utf8

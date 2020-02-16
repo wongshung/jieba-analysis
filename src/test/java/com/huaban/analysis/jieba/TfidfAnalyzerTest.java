@@ -18,10 +18,22 @@ import java.util.List;
 public class TfidfAnalyzerTest extends TestCase {
     @Test
     public void testWordExtract() {
-        String content="孩子上了幼儿园 安全防拐教育要做好";
+        String content="营业时间";
         int topN=5;
         TFIDFAnalyzer tfidfAnalyzer=new TFIDFAnalyzer();
-        List<Keyword> list=tfidfAnalyzer.analyze(content,topN);
+        List<Keyword> list=tfidfAnalyzer.analyze(content, topN);
+        for(Keyword word:list)
+            System.out.println(word.getName()+":"+word.getTfidfvalue()+",");
+
+        Assert.assertTrue(list.size() > 0);
+    }
+
+    @Test
+    public void testWordExtractEx() {
+        String content="汽车上可以拿几个行李箱";
+        int topN=5;
+        TFIDFAnalyzer tfidfAnalyzer=new TFIDFAnalyzer();
+        List<Keyword> list=tfidfAnalyzer.analyzeEx(content, topN, 1);
         for(Keyword word:list)
             System.out.println(word.getName()+":"+word.getTfidfvalue()+",");
 
