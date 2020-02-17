@@ -74,7 +74,7 @@ public class TFIDFAnalyzer
 	 * 支持其它分词方式的tfidf分析方法
 	 * @param content 需要分析的文本/文档内容
 	 * @param topN 需要返回的tfidf值最高的N个关键词，若超过content本身含有的词语上限数目，则默认返回全部
-	 * @param segMethod 分词方法，1-ik最小粒度，2-ik智能分词，其它-jieba
+	 * @param segMethod 分词方法，1-ik最小粒度，2-ik智能分词，4-组合模式，其它-jieba
 	 * @return 分析结果
 	 */
 	public List<Keyword> analyzeEx(String content, int topN, int segMethod) {
