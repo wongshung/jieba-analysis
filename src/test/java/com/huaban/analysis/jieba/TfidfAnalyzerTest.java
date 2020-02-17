@@ -18,7 +18,7 @@ import java.util.List;
 public class TfidfAnalyzerTest extends TestCase {
     @Test
     public void testWordExtract() {
-        String content="营业时间";
+        String content="5分钟内未成功出票，会赔付吗？怎么赔付？";
         int topN=5;
         TFIDFAnalyzer tfidfAnalyzer=new TFIDFAnalyzer();
         List<Keyword> list=tfidfAnalyzer.analyze(content, topN);
@@ -30,10 +30,10 @@ public class TfidfAnalyzerTest extends TestCase {
 
     @Test
     public void testWordExtractEx() {
-        String content="汽车上可以拿几个行李箱";
+        String content="5分钟内未成功出票，会赔付吗？怎么赔付？";
         int topN=5;
         TFIDFAnalyzer tfidfAnalyzer=new TFIDFAnalyzer();
-        List<Keyword> list=tfidfAnalyzer.analyzeEx(content, topN, 1);
+        List<Keyword> list=tfidfAnalyzer.analyzeEx(content, topN, 4);
         for(Keyword word:list)
             System.out.println(word.getName()+":"+word.getTfidfvalue()+",");
 

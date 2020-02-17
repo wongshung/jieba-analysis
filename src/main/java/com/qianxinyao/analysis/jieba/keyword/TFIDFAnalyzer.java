@@ -99,7 +99,14 @@ public class TFIDFAnalyzer
 			segments = getSegment(content, 1);
 		} else if (method == 2) {
 			segments = getSegment(content, 2);
+		} else if (method == 4){
+			// combo mode
+			List<String> segments1 = getSegment(content, 3);
+			segments = getSegment(content, 1);
+			segments.removeAll(segments1);
+			segments.addAll(segments1);
 		} else {
+			// default using jieba itself only
 			segments = getSegment(content, 3);
 		}
 
